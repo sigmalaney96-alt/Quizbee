@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ verifyIdToken: vi.fn() }));
+const mocks = vi.hoisted(() => ({ verifyIdToken: vi.fn(), getApps: vi.fn() }));
 vi.mock("server-only", () => ({}));
-vi.mock("firebase-admin/app", () => ({ getApps: () => [{}], initializeApp: vi.fn(), cert: vi.fn() }));
+vi.mock("firebase-admin/app", () => ({ getApps: mocks.getApps, initializeApp: vi.fn(), cert: vi.fn() }));
 vi.mock("firebase-admin/auth", () => ({ getAuth: () => ({ verifyIdToken: mocks.verifyIdToken }) }));
 vi.mock("firebase-admin/firestore", () => ({ getFirestore: vi.fn() }));
 
@@ -13,6 +13,7 @@ const request = () => new Request("https://quizbee.example/api/courses", {
 });
 
 beforeEach(() => {
+  mocks.getApps.mockReturnValue([{}]);
   mocks.verifyIdToken.mockResolvedValue({
     uid: "firebase-user", name: "Student", firebase: { identities: { "google.com": ["google-user"] } },
   });
@@ -40,6 +41,14 @@ describe("server authentication", () => {
 
   it("rejects requests missing either credential", async () => {
     await expect(authenticate(new Request("https://quizbee.example"))).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("reports missing Firebase server credentials rather than an expired sign-in", async () => {
+    mocks.getApps.mockReturnValue([]);
+    vi.stubEnv("FIREBASE_SERVICE_ACCOUNT_JSON", "");
+    await expect(authenticate(request())).rejects.toMatchObject({
+      status: 500, message: "Firebase server credentials are not configured.",
+    });
   });
 });
 

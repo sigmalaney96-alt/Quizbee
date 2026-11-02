@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "firebase": "^13.2.0",
+    "firebase": "13.2.0",
     "firebase-admin": "^14.5.0",
     "lucide-react": "^0.468.0",
     "next": "^16.4.4",
@@ -32,6 +32,7 @@
     "node": "26.x"
   },
   "overrides": {
+    "@firebase/app": "0.16.5",
     "@firebase/firestore": {
       "@grpc/grpc-js": "^1.14.7"
     }

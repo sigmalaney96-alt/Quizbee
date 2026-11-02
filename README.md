@@ -25,7 +25,7 @@ The Firebase web app's non-secret project identifiers are filled in `.env.exampl
 3. Import this repository into Vercel. Add every variable from `.env.example` to the Vercel project:
    - The `NEXT_PUBLIC_FIREBASE_*` values are the Firebase web configuration. Add the provided Firebase web API key as described above.
    - `YOUTUBE_API_KEY` is the server-only YouTube key.
-   - `FIREBASE_SERVICE_ACCOUNT_JSON` is the **entire JSON object** from the service-account key, entered as one environment-variable value. Never use a `NEXT_PUBLIC_` prefix for it.
+   - For the service account, use **either** `FIREBASE_SERVICE_ACCOUNT_JSON` (the entire JSON object, plain or base64-encoded) **or** the two separate values `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` copied from the JSON file (keep the `\n` sequences in the private key). Never use a `NEXT_PUBLIC_` prefix for these. If the separate values are set, they take precedence.
    - `APP_URL` is the stable production origin, for example `https://your-app.vercel.app`, without a trailing slash. Published Classroom assignments link to this origin, so do not use a temporary preview URL.
 4. Deploy or redeploy after setting the variables. Public Firebase variables are included in the client build, so changing them requires a redeploy. Add any custom production domain to Firebase's authorized domains and update `APP_URL` before assigning work.
 5. Sign in as a teacher, allow the Classroom permissions, create a Quizbee, and assign it to an active class. Sign in as an enrolled student in a separate browser session and open the Classroom assignment.

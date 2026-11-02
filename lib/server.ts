@@ -11,12 +11,36 @@ export class HttpError extends Error {
   }
 }
 
-function adminApp() {
-  if (getApps().length) return getApps()[0];
+function serviceAccount(): Record<string, string> {
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (clientEmail && privateKey) {
+    return {
+      project_id: process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+      client_email: clientEmail,
+      private_key: privateKey.replace(/\\n/g, "\n"),
+    };
+  }
   const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (!json) throw new HttpError(500, "Firebase server credentials are not configured.");
+  const candidates = [json];
   try {
-    return initializeApp({ credential: cert(JSON.parse(json)) });
+    candidates.push(Buffer.from(json, "base64").toString("utf8"));
+  } catch { /* not base64 */ }
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (typeof parsed.client_email === "string" && typeof parsed.private_key === "string") return parsed;
+    } catch { /* try the next representation */ }
+  }
+  throw new HttpError(500, "Firebase server credentials are invalid. Paste the full service-account JSON, or use FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY instead.");
+}
+
+function adminApp() {
+  if (getApps().length) return getApps()[0];
+  const account = serviceAccount();
+  try {
+    return initializeApp({ credential: cert(account) });
   } catch {
     throw new HttpError(500, "Firebase server credentials are invalid.");
   }

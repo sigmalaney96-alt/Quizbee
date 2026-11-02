@@ -50,6 +50,36 @@ describe("server authentication", () => {
       status: 500, message: "Firebase server credentials are not configured.",
     });
   });
+
+  it("accepts the service account as separate email and key variables", async () => {
+    mocks.getApps.mockReturnValue([]);
+    vi.stubEnv("FIREBASE_SERVICE_ACCOUNT_JSON", "{invalid json");
+    vi.stubEnv("FIREBASE_CLIENT_EMAIL", "robot@example.iam.gserviceaccount.com");
+    vi.stubEnv("FIREBASE_PRIVATE_KEY", "-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----\\n");
+    vi.stubEnv("NEXT_PUBLIC_FIREBASE_PROJECT_ID", "quizbee-5b558");
+    const { initializeApp, cert } = await import("firebase-admin/app");
+    vi.mocked(cert).mockReturnValue("credential" as never);
+    await expect(authenticate(request())).resolves.toMatchObject({ uid: "firebase-user" });
+    expect(cert).toHaveBeenCalledWith({
+      project_id: "quizbee-5b558",
+      client_email: "robot@example.iam.gserviceaccount.com",
+      private_key: "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n",
+    });
+    expect(initializeApp).toHaveBeenCalledWith({ credential: "credential" });
+  });
+
+  it("accepts base64-encoded service-account JSON", async () => {
+    mocks.getApps.mockReturnValue([]);
+    vi.stubEnv("FIREBASE_SERVICE_ACCOUNT_JSON", Buffer.from(JSON.stringify({
+      project_id: "quizbee-5b558",
+      client_email: "robot@example.iam.gserviceaccount.com",
+      private_key: "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n",
+    })).toString("base64"));
+    const { cert } = await import("firebase-admin/app");
+    vi.mocked(cert).mockReturnValue("credential" as never);
+    await expect(authenticate(request())).resolves.toMatchObject({ uid: "firebase-user" });
+    expect(cert).toHaveBeenCalledWith(expect.objectContaining({ project_id: "quizbee-5b558" }));
+  });
 });
 
 describe("Google configuration", () => {

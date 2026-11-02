@@ -92,6 +92,16 @@ describe("Google configuration", () => {
     expect(String(vi.mocked(fetch).mock.calls[1][0])).toContain("pageToken=next");
   });
 
+  it("surfaces Google's exact reason when Classroom denies access", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({
+      error: { message: "Request had insufficient authentication scopes.", errors: [{ reason: "insufficientPermissions" }] },
+    }), { status: 403 }));
+    await expect(courses("token", "student")).rejects.toMatchObject({
+      status: 403,
+      message: expect.stringContaining("insufficientPermissions: Request had insufficient authentication scopes."),
+    });
+  });
+
   it("requires a stable HTTPS origin except for local development", () => {
     vi.stubEnv("APP_URL", "https://quizbee.example/path");
     expect(() => appUrl()).toThrow("HTTPS origin");

@@ -78,6 +78,17 @@ export async function authenticate(request: Request): Promise<RequestUser> {
   return { uid: decoded.uid, name: decoded.name || "Student", googleToken };
 }
 
+async function googleErrorReason(response: Response): Promise<string> {
+  try {
+    const body: { error?: { message?: string; errors?: Array<{ reason?: string }> } } = await response.json();
+    const reason = body.error?.errors?.[0]?.reason;
+    const message = body.error?.message;
+    return [reason, message].filter(Boolean).join(": ");
+  } catch {
+    return "";
+  }
+}
+
 async function googleFetch<T>(url: string, token: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
@@ -85,10 +96,12 @@ async function googleFetch<T>(url: string, token: string, init?: RequestInit): P
     cache: "no-store",
   });
   if (!response.ok) {
-    if (response.status === 401) throw new HttpError(401, "Your Google connection expired. Please reconnect.");
-    if (response.status === 403) throw new HttpError(403, "Google Classroom denied access. Check your account, permissions, and Classroom API setup.");
+    const detail = await googleErrorReason(response);
+    const suffix = detail ? ` Google says: ${detail}.` : "";
+    if (response.status === 401) throw new HttpError(401, `Your Google connection expired. Please reconnect.${suffix}`);
+    if (response.status === 403) throw new HttpError(403, `Google Classroom denied access.${suffix} Check your account, permissions, and Classroom API setup.`);
     if (response.status === 404) throw new HttpError(404, "This Classroom course or assignment is no longer available.");
-    throw new HttpError(502, `Google Classroom could not complete the request (${response.status}). Please try again.`);
+    throw new HttpError(502, `Google Classroom could not complete the request (${response.status}).${suffix} Please try again.`);
   }
   return response.json() as Promise<T>;
 }
@@ -149,7 +162,10 @@ export async function searchVideos(query: string): Promise<Video[]> {
     maxResults: "12", q: query, key,
   });
   const search = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`, { cache: "no-store" });
-  if (!search.ok) throw new HttpError(502, `YouTube search failed (${search.status}). Check the API key, API enablement, and quota.`);
+  if (!search.ok) {
+    const detail = await googleErrorReason(search);
+    throw new HttpError(502, `YouTube search failed (${search.status})${detail ? ` — Google says: ${detail}` : ""}. Check the API key, API enablement, and quota.`);
+  }
   const data: { items?: Array<{ id: { videoId?: string }; snippet: { title: string; channelTitle: string } }> } = await search.json();
   const items = (data.items || []).filter((item) => item.id.videoId);
   if (!items.length) return [];

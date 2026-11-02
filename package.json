@@ -35,6 +35,9 @@
     "@firebase/app": "0.16.5",
     "@firebase/firestore": {
       "@grpc/grpc-js": "^1.14.7"
+    },
+    "jwks-rsa": {
+      "jose": "5.10.0"
     }
   }
 }

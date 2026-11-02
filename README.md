@@ -59,3 +59,5 @@ npm run build
 ```
 
 The tests mock Google and Firestore; a real deployment still requires the Firebase, Classroom, YouTube, OAuth, and Workspace configuration above.
+
+The `jwks-rsa` override keeps its `jose` dependency compatible with Vercel's CommonJS runtime. Revisit it only after upstream support is fixed, and retain the server dependency compatibility test when upgrading Firebase Admin.

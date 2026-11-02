@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
+import { parseApiResponse } from "@/lib/api-response";
 import { clientAuth } from "@/lib/firebase-client";
 import type { Role } from "@/lib/types";
 
@@ -91,9 +92,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         ...init?.headers,
       },
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Something went wrong.");
-    return data as T;
+    return parseApiResponse<T>(response);
   }, [user, token]);
 
   const value = useMemo(() => ({ user, token, role, loading, error, connect, disconnect, request }),

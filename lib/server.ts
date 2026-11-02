@@ -34,9 +34,10 @@ export async function authenticate(request: Request): Promise<RequestUser> {
   if (!authorization?.startsWith("Bearer ") || !googleToken) {
     throw new HttpError(401, "Please connect your Google account again.");
   }
+  const auth = getAuth(adminApp());
   let decoded;
   try {
-    decoded = await getAuth(adminApp()).verifyIdToken(authorization.slice(7));
+    decoded = await auth.verifyIdToken(authorization.slice(7));
   } catch {
     throw new HttpError(401, "Your sign-in has expired. Please sign in again.");
   }
